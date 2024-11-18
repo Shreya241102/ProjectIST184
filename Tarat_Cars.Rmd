@@ -21,7 +21,7 @@ The dataset is from a Countrywide Traffic accident reports dataset published by 
 The dataset is ZipDemography which is taken from dcData package. 
 
 ## Challenges faced
-The dataset was very large and I needed a way to decrease the query times without effecting the quality of the analysis. I decided to use the fread function to read the csv instead of read_csv since it is much faster to read. Also I created a smaller dataset of 100,000 random rows instead of the original 7 million. This improved the query times and still gave me a good sample to work with.
+The dataset was very large (almost 3GB) and I needed a way to decrease the query times without effecting the quality of the analysis. I decided to use the fread function to read the csv instead of read_csv since it is much faster to read. Also I created a smaller dataset of 100,000 random rows instead of the original 7 million. This improved the query times and still gave me a good sample to work with.
 
 ## Load packages and data
 ```{r}
@@ -188,7 +188,7 @@ ggplot(travel_time_data, aes(x = mean_travel_time, y = total_accidents)) +
 ## Conclusion
 We saw that geographic and environmental aspects does have impact on the number and severity of accidents.
 
-Key Findings:
+* Key Findings:
   + Most accidents occur during fair weather conditions. This could be attributed to drivers being less cautious, driving at higher speeds, and having slower reaction times.
   + Bad weather although causing less accidents, usually tend to have higher severity.
   + The peak hours of the day see a high number of accidents compared to other times.
