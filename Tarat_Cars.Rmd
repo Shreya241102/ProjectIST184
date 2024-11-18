@@ -1,6 +1,6 @@
 ---
 title: "Analysis of The Safety of Self Driving Cars"
-author: "Shreya Tarat"
+author: "Anonymous"
 date: "2024-11-11"
 output: 
   html_notebook:
@@ -19,6 +19,9 @@ The dataset is from a Countrywide Traffic accident reports dataset published by 
 
 ## Secondary Source:
 The dataset is ZipDemography which is taken from dcData package. 
+
+## Challenges faced
+The dataset was very large and I needed a way to decrease the query times without effecting the quality of the analysis. I decided to use the fread function to read the csv instead of read_csv since it is much faster to read. Also I created a smaller dataset of 100,000 random rows instead of the original 7 million. This improved the query times and still gave me a good sample to work with.
 
 ### Load packages and data
 ```{r}
@@ -104,7 +107,7 @@ ggplot(time_weather_summary,
 ```
 
 # Does geography matter?
-Here I want to analyze if the location, grouped by states can tell us about accident frequency or severity. Furthermore does the mean household income tell us anything?
+Here I want to analyze if the location, grouped by states can tell us about accident frequency or severity.
 ```{r}
 # Getting data from ZipDemography
 zip_data <- ZipDemography %>%
@@ -121,7 +124,7 @@ accidents_with_zip_data <- cleaned_accident_data %>%
 
 ```
 ### Grouping by states
-Here we group the data by states and count the total number of accidents along with the mean household income and the population.
+Here we group the data by states and count the total number of accidents.
 ```{r}
 # Since zipcodes can be repeated in the joined accidents data, we need to first get the rows without duplicated zipcodes so we can use it to total population.
 unique_zip_data <- accidents_with_zip_data %>%
@@ -161,6 +164,7 @@ ggplot(top_10_states, aes(x = reorder(State, total_accidents), y = total_acciden
   )
 ```
 ## Travel Time Analysis
+Here we will check if travel time to work effects the accidents.
 ```{r}
 travel_time_data <- accidents_with_zip_data %>%
   group_by(Zipcode) %>%
@@ -181,4 +185,14 @@ ggplot(travel_time_data, aes(x = mean_travel_time, y = total_accidents)) +
   ) +
   theme_minimal()
 ```
+## Conclusion
+We saw that geographic and environmental aspects does have impact on the number and severity of accidents.
+
+Key Findings:
+  + Most accidents occur during fair weather conditions. This could be attributed to drivers being less cautious, driving at higher speeds, and having slower reaction times.
+  + Bad weather although causing less accidents, usually tend to have higher severity.
+  + The peak hours of the day see a high number of accidents compared to other times.
+  + States with high population like California and Texas see a high number of accidents.
+  + Accidents are more frequent at 25 minutes of travel time, indicating short travel times play a role in accident frequency.
+
 
