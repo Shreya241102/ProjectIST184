@@ -1,0 +1,78 @@
+---
+title: "Analysis of The Safety of Self Driving Cars"
+author: "Shreya Tarat"
+date: "2024-11-11"
+output: 
+  html_notebook:
+    fig_height: 7
+    fig_width: 10
+---
+# Research Question:
+Are cars equipped with Automated Driving Systems safer than the normal vehicular cars on road?
+
+## Become acquainted with your data sources: 
+###	Where did you find them? 
+I found my two primary datasets from Kaggle.com
+
+###	Who collected/maintains them? 
+*	The Data is from the National Highway Traffic Safety Administration for Automated car crashes 
+* The second dataset is from a Countrywide Traffic accident reports dataset published by Arxivs. 
+
+###	When and why were they originally collected? 
+*	Automated car crashes dataset was collected in 2021. The HHTSA issued a directive requiring manufacturers and fleet operators to report certain crashes involving either advanced driver assistance or higher-level “automated driving systems.
+*	Vehicular accidents dataset was collected from Feb 2016-2023 for numerous applications, such as real-time car accident prediction, studying car accident hotspot locations, casualty analysis etc.
+
+###	What does a case represent in each data source, and how many total cases are available?
+* Each case describe each report and include information about the car, location, circumstances, and injury level in both the datasets
+* Automated car crashes have 436 cases while Vehicular dataset consists of 7728394 cases.
+
+###	What are some of the variables that you plan to use? 
+Severity of accident, model of the car, 
+
+
+### Load packages
+```{r}
+library(readr)
+library(dplyr) 
+#Using data.table library to use 'fread'. I found this resource while researching online and is used to load large datasets. This is much faster than read_csv 
+library(data.table)
+library(tidyverse)
+```
+### Read data
+```{r}
+ads_data_small_sample <- ads_data[sample(nrow(ads_data), 100), ]
+
+# Save the smaller dataset to a new CSV file
+write.csv(ads_data_small_sample, "ADS_Incident_Reports_Small.csv", row.names = FALSE)
+car_accidents <- fread("US_Accidents_March23.csv")
+head(car_accidents)
+```
+
+### Explore intuition related to the research question
+
+The graph below shows the severity statistics of the ADS driving accident report. It shows that most accidents have no injuries reported
+```{r}
+ggplot(ads_data) +
+  aes(x = `Highest Injury Severity`) +
+  geom_bar(fill = "#112446") +
+  theme_minimal()
+```
+The graph below shows the severity of the car accident reports. It also shows that most accidents here cause little traffic obstruction
+```{r}
+ggplot(car_accidents) +
+  aes(x = `Severity`) +
+  geom_bar(fill = "#112446") +
+  theme_minimal()
+```
+### Describe preliminary observations and intuition about the research question
+*	We observe ADS cars have less severe injuries, giving them a safety advantage as they react faster than humans
+*	I plan on adding demographics and environmental factors to observe how they performed during these conditions. 
+*	Frequency of ADS car accidents are less, which suggest better safety
+
+### TWO Data Sources (at least): 
+
+* Primary data 
+  + https://www.kaggle.com/datasets/michaelbryantds/automated-driving-crashes
+* Other data sources 
+  + https://www.kaggle.com/datasets/sobhanmoosavi/us-accidents
+  + https://arxiv.org/abs/1906.05409	
