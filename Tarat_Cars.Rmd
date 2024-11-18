@@ -23,7 +23,7 @@ The dataset is ZipDemography which is taken from dcData package.
 ## Challenges faced
 The dataset was very large and I needed a way to decrease the query times without effecting the quality of the analysis. I decided to use the fread function to read the csv instead of read_csv since it is much faster to read. Also I created a smaller dataset of 100,000 random rows instead of the original 7 million. This improved the query times and still gave me a good sample to work with.
 
-### Load packages and data
+## Load packages and data
 ```{r}
 library(readr)
 library(dplyr) 
@@ -35,7 +35,7 @@ data("ZipDemography")
 cleaned_accident_data <- fread("US_Accidents_March23_100K.csv")
 head(cleaned_accident_data, 4)
 ```
-# Cleaning the data
+## Cleaning the data
 Here we remove the rows with missing information about Severity, Start_Time, Zipcode, Weather_Condition, Temperature(F), Visibility(mi), and Severity. We also need to convert the Start Time into a POSIX date object.
 ```{r}
 cleaned_accident_data <- cleaned_accident_data %>%
@@ -78,7 +78,7 @@ ggplot(weather_summary,
     ) 
 ```
 
-## What hour of the day do accidents occur the most?
+# What hour of the day do accidents occur the most?
 Here we will check if the hour of the day could tell us about accident frequency. I expect to see more accidents during peak hours.
 ```{r}
 cleaned_accident_data <- cleaned_accident_data %>%
@@ -90,7 +90,7 @@ time_weather_summary <- cleaned_accident_data %>%
       avg_severity = mean(Severity)
     )
 ```
-### Graphing it
+## Graphing it
 We see here that the hypothesis was correct. The peak hours which are during people leaving for work (6-9) and people coming back from work (3-6) has the most number of accidents. The severity of the accidents do not change a lot.
 ```{r}
 ggplot(time_weather_summary, 
@@ -123,7 +123,7 @@ accidents_with_zip_data <- cleaned_accident_data %>%
   left_join(zip_data, by = c(Zipcode = "ZIP"))
 
 ```
-### Grouping by states
+## Grouping by states
 Here we group the data by states and count the total number of accidents.
 ```{r}
 # Since zipcodes can be repeated in the joined accidents data, we need to first get the rows without duplicated zipcodes so we can use it to total population.
@@ -148,7 +148,7 @@ state_summary <- unique_zip_data %>%
 top_10_states <- state_summary %>%
   slice_max(total_accidents, n = 10)
 ```
-### Graphing Number of Accidents vs State
+## Graphing Number of Accidents vs State
 Here we see that California has the highest number of accidents and it is also the most populated state. Population density definitely has a big impact on number of accidents.
 ```{r}
 ggplot(top_10_states, aes(x = reorder(State, total_accidents), y = total_accidents)) +
@@ -163,7 +163,7 @@ ggplot(top_10_states, aes(x = reorder(State, total_accidents), y = total_acciden
     fill = "Total Population"
   )
 ```
-## Travel Time Analysis
+# Travel Time Analysis
 Here we will check if travel time to work effects the accidents.
 ```{r}
 travel_time_data <- accidents_with_zip_data %>%
