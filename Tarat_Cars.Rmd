@@ -8,71 +8,177 @@ output:
     fig_width: 10
 ---
 # Research Question:
-Are cars equipped with Automated Driving Systems safer than the normal vehicular cars on road?
+How do geographic and environmental characteristics effect the severity and the frequency of accidents in the United States?
 
-## Become acquainted with your data sources: 
-###	Where did you find them? 
-I found my two primary datasets from Kaggle.com
-
-###	Who collected/maintains them? 
-*	The Data is from the National Highway Traffic Safety Administration for Automated car crashes 
-* The second dataset is from a Countrywide Traffic accident reports dataset published by Arxivs. 
-
-###	When and why were they originally collected? 
-*	Automated car crashes dataset was collected in 2021. The HHTSA issued a directive requiring manufacturers and fleet operators to report certain crashes involving either advanced driver assistance or higher-level “automated driving systems.
-*	Vehicular accidents dataset was collected from Feb 2016-2023 for numerous applications, such as real-time car accident prediction, studying car accident hotspot locations, casualty analysis etc.
-
-###	What does a case represent in each data source, and how many total cases are available?
-* Each case describe each report and include information about the car, location, circumstances, and injury level in both the datasets
-* Automated car crashes have 436 cases while Vehicular dataset consists of 7728394 cases.
-
-###	What are some of the variables that you plan to use? 
-Severity of accident, model of the car, 
+# Relevance
+Understanding the relationship between geographic and environmental factors and traffic accidents is critical as will help in priortizing safety interventions and guide infrastructure updates, like better road contions, lighting etc. 
 
 
-### Load packages
+## Primary Source: 
+The dataset is from a Countrywide Traffic accident reports dataset published by Arxivs.
+
+## Secondary Source:
+The dataset is ZipDemography which is taken from dcData package. 
+
+### Load packages and data
 ```{r}
 library(readr)
 library(dplyr) 
 #Using data.table library to use 'fread'. I found this resource while researching online and is used to load large datasets. This is much faster than read_csv 
 library(data.table)
 library(tidyverse)
+library(dcData)
+data("ZipDemography")
+cleaned_accident_data <- fread("US_Accidents_March23_100K.csv")
+head(cleaned_accident_data, 4)
 ```
-### Read data
+# Cleaning the data
+Here we remove the rows with missing information about Severity, Start_Time, Zipcode, Weather_Condition, Temperature(F), Visibility(mi), and Severity. We also need to convert the Start Time into a POSIX date object.
 ```{r}
-ads_data_small_sample <- ads_data[sample(nrow(ads_data), 100), ]
-
-# Save the smaller dataset to a new CSV file
-write.csv(ads_data_small_sample, "ADS_Incident_Reports_Small.csv", row.names = FALSE)
-car_accidents <- fread("US_Accidents_March23.csv")
-head(car_accidents)
+cleaned_accident_data <- cleaned_accident_data %>%
+  filter(
+    !is.na(Severity),
+    !is.na(Start_Time),
+    !is.na(Zipcode),
+    !is.na(Weather_Condition),
+    !is.na(State)
+  ) %>%
+  mutate(Start_Time = ymd_hms(Start_Time)) %>%
+  select(Severity, Start_Time, Zipcode, Weather_Condition, State)
+```
+# Does environment matter?
+Here I want to check if weather conditions can tell us anything about car accidents.
+```{r}
+weather_summary <- cleaned_accident_data %>%
+  group_by(Weather_Condition) %>%
+  summarise(
+    count = n(),
+    avg_severity = mean(Severity), # Averaging the severity score for weather condition
+  ) %>%
+  arrange(desc(count)) %>%
+  slice_head(n = 15)  # Taking only top 15 into account because conditions with less data do not tell us much
+```
+## Graph
+The graph below shows that most accidents occur on fair conditions. I believe this is the cause of people driving at higher speeds during good conditions. Leading people to make more mistakes and slow reaction times make it hard to avoid accidents.
+```{r}
+ggplot(weather_summary, 
+    aes(x = reorder(Weather_Condition, count), y = count)) +
+    geom_bar(stat = "identity", aes(fill = avg_severity)) +
+    coord_flip() +
+    scale_fill_viridis_c() +
+    theme_minimal() +
+    labs(
+      title = "Accident Frequency and Severity by Weather Condition",
+      x = "Weather Condition",
+      y = "Number of Accidents",
+      fill = "Average\nSeverity"
+    ) 
 ```
 
-### Explore intuition related to the research question
-
-The graph below shows the severity statistics of the ADS driving accident report. It shows that most accidents have no injuries reported
+## What hour of the day do accidents occur the most?
+Here we will check if the hour of the day could tell us about accident frequency. I expect to see more accidents during peak hours.
 ```{r}
-ggplot(ads_data) +
-  aes(x = `Highest Injury Severity`) +
-  geom_bar(fill = "#112446") +
+cleaned_accident_data <- cleaned_accident_data %>%
+  mutate(hour = hour(Start_Time))
+time_weather_summary <- cleaned_accident_data %>%
+    group_by(hour) %>%
+    summarise(
+      count = n(),
+      avg_severity = mean(Severity)
+    )
+```
+### Graphing it
+We see here that the hypothesis was correct. The peak hours which are during people leaving for work (6-9) and people coming back from work (3-6) has the most number of accidents. The severity of the accidents do not change a lot.
+```{r}
+ggplot(time_weather_summary, 
+    aes(x = hour, y = count)) +
+    geom_bar(stat = "identity", aes(fill = avg_severity)) +
+    scale_fill_viridis_c() +
+    theme_minimal() +
+    labs(
+      title = "Accident Frequency and Severity by Hour",
+      x = "Hour",
+      y = "Number of Accidents",
+      fill = "Average\nSeverity"
+    )
+```
+
+# Does geography matter?
+Here I want to analyze if the location, grouped by states can tell us about accident frequency or severity. Furthermore does the mean household income tell us anything?
+```{r}
+# Getting data from ZipDemography
+zip_data <- ZipDemography %>%
+  filter(!is.na(Totalpopulation)) %>% # Remove rows not containing total population
+  select(Totalpopulation, ZIP, Meantraveltimetoworkinminutespopulation16yearsandolder) # Only select required fields
+
+# Removing '-' from zipcodes in accidents data. For example 123456-4123 -> 123456
+cleaned_accident_data <- cleaned_accident_data %>%
+  mutate(Zipcode = str_extract(Zipcode, "^[0-9]+")) # This matches a string with digits in the beginning until we see a non digit
+
+# Join Accident Data with ZipDemography
+accidents_with_zip_data <- cleaned_accident_data %>%
+  left_join(zip_data, by = c(Zipcode = "ZIP"))
+
+```
+### Grouping by states
+Here we group the data by states and count the total number of accidents along with the mean household income and the population.
+```{r}
+# Since zipcodes can be repeated in the joined accidents data, we need to first get the rows without duplicated zipcodes so we can use it to total population.
+unique_zip_data <- accidents_with_zip_data %>%
+  select(Zipcode, State, Totalpopulation) %>%
+  distinct() # Removes duplicate ZIP codes
+
+state_summary <- unique_zip_data %>%
+  group_by(State) %>%
+  summarise(
+    total_population = sum(Totalpopulation, na.rm = TRUE) # Sum population for each zipcodes
+  ) %>%
+  left_join(
+    accidents_with_zip_data %>% # Join it again so we can calculate the total number of accidents
+      group_by(State) %>%
+      summarise(
+        total_accidents = n()
+        ),
+    by = "State"
+  ) %>%
+  arrange(desc(total_accidents))
+top_10_states <- state_summary %>%
+  slice_max(total_accidents, n = 10)
+```
+### Graphing Number of Accidents vs State
+Here we see that California has the highest number of accidents and it is also the most populated state. Population density definitely has a big impact on number of accidents.
+```{r}
+ggplot(top_10_states, aes(x = reorder(State, total_accidents), y = total_accidents)) +
+  geom_bar(stat = "identity", aes(fill = total_population)) +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  coord_flip() +
+  labs(
+    title = "Top 10 States with the Most Accidents",
+    x = "State",
+    y = "Number of Accidents",
+    fill = "Total Population"
+  )
+```
+## Travel Time Analysis
+```{r}
+travel_time_data <- accidents_with_zip_data %>%
+  group_by(Zipcode) %>%
+  summarise(
+    mean_travel_time = mean(Meantraveltimetoworkinminutespopulation16yearsandolder, na.rm = TRUE), # Calculating mean travel time
+    total_accidents = n()
+  )
+```
+## Graphing travel time
+Here we see that a lot of accidents occur during the 25 minute work travel time. This indicates that as travel time increases the total number of accidents increases till a certain point (25 minutes in this case) and then total accidents seem to decrease. I believe that people with shorter travel time tend to make more mistakes because their commute might require them to navigate through more crowded places rather than highways.
+```{r}
+ggplot(travel_time_data, aes(x = mean_travel_time, y = total_accidents)) +
+  geom_point(alpha = 0.6) +
+  labs(
+    title = "Accident Frequency vs. Mean Travel Time to Work",
+    x = "Mean Travel Time (minutes)",
+    y = "Total Accidents"
+  ) +
   theme_minimal()
 ```
-The graph below shows the severity of the car accident reports. It also shows that most accidents here cause little traffic obstruction
-```{r}
-ggplot(car_accidents) +
-  aes(x = `Severity`) +
-  geom_bar(fill = "#112446") +
-  theme_minimal()
-```
-### Describe preliminary observations and intuition about the research question
-*	We observe ADS cars have less severe injuries, giving them a safety advantage as they react faster than humans
-*	I plan on adding demographics and environmental factors to observe how they performed during these conditions. 
-*	Frequency of ADS car accidents are less, which suggest better safety
 
-### TWO Data Sources (at least): 
-
-* Primary data 
-  + https://www.kaggle.com/datasets/michaelbryantds/automated-driving-crashes
-* Other data sources 
-  + https://www.kaggle.com/datasets/sobhanmoosavi/us-accidents
-  + https://arxiv.org/abs/1906.05409	
