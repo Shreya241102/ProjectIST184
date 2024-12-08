@@ -1,6 +1,6 @@
 ---
 title: "Analysis of The Safety of Self Driving Cars"
-author: "Anonymous"
+author: "Shreya Tarat"
 date: "2024-11-11"
 output: 
   html_notebook:
@@ -11,8 +11,7 @@ output:
 How do geographic and environmental characteristics effect the severity and the frequency of accidents in the United States?
 
 # Relevance
-Understanding the relationship between geographic and environmental factors and traffic accidents is critical as will help in priortizing safety interventions and guide infrastructure updates, like better road contions, lighting etc. 
-
+Understanding the relationship between geographic and environmental factors and traffic accidents is critical as will help in priortizing safety interventions and guide infrastructure updates, like better road conditions, lighting etc. 
 
 ## Primary Source: 
 The dataset is from a Countrywide Traffic accident reports dataset published by Arxivs.
@@ -27,16 +26,19 @@ The dataset was very large (almost 3GB) and I needed a way to decrease the query
 ```{r}
 library(readr)
 library(dplyr) 
-#Using data.table library to use 'fread'. I found this resource while researching online and is used to load large datasets. This is much faster than read_csv 
 library(data.table)
 library(tidyverse)
 library(dcData)
 data("ZipDemography")
-cleaned_accident_data <- fread("US_Accidents_March23_100K.csv")
+cleaned_accident_data <- read_csv("US_Accidents_March23_100K.csv")
+```
+## Inspecting Data
+Here we can see how the data is represented in the table. It includes many variables, however we will only be focusing on few of them.
+```{r}
 head(cleaned_accident_data, 4)
 ```
 ## Cleaning the data
-Here we remove the rows with missing information about Severity, Start_Time, Zipcode, Weather_Condition, Temperature(F), Visibility(mi), and Severity. We also need to convert the Start Time into a POSIX date object.
+Here we remove the rows with missing information about Severity, Start_Time, Zipcode, Weather_Condition, Temperature(F), Visibility(mi), and Severity. We also need to convert the Start Time into a POSIX date object. We will only select these variables for the analysis.
 ```{r}
 cleaned_accident_data <- cleaned_accident_data %>%
   filter(
